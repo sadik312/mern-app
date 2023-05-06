@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 /* Register User */
-export const register = async (req, res) => {
+const register = async (req, res) => {
     try{
         const {
             firstName,
@@ -36,4 +36,28 @@ export const register = async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message }); // if errors, send error message with whatever error msg mongoDB has returne. (Frontend will get this message)
     }
+};
+
+/* Loggin In */
+const login = async (req, res) => {
+    // user validation
+    try{
+        const { email, password } = req.body; // destructure email and pwd from req.body
+        const user = await User.findOne({ email: email }); // use mongoose to find the one that has the specified email
+        if (!user) return res.status(400).json({msg: "User does not exist" });
+
+        const isMatch = await bcrypt.compare(password, user.password); // use bcrypt to compare password just sent and password saved in db
+        if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
+        
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+        delete user.password; // delete pwd so it doesn't get sent back to the frontend to make sure it's kept safe
+        res.status(200).json({ token, user });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+}
+
+export default {
+    register,
+    login
 }
